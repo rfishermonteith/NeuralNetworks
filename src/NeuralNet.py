@@ -20,6 +20,11 @@ class Network:
                 num_inputs_layer = layer_sizes[i-1]
             new_layer = Layer(layer_sizes[i], num_inputs_layer)
             self.layers[i] = new_layer
+         
+        # Set step size for numerical integration   
+        self.h_param = 0.00001
+        # Set learning rate value
+        self.learning_rate = 0.15
             
     def sim(self, inputs):
         """Simulates the feedforward network
@@ -28,9 +33,58 @@ class Network:
         tempOutputs = inputs
         for i in self.layers:
             tempOutputs = i.sim(tempOutputs)
-        outputs = tempOutputs
+        outputs = np.concatenate(tempOutputs)
         return outputs
     
+    def train(self, inputs, outputs, num_epochs):
+        """Trains the network
+        inputs is a 2darray of inputs, rows are samples, columns are elements
+        outputs is a 2darray of corresponding network outputs, rows are samples, columns are elements
+        num_epochs is the number of epochs to run
+        """
+                
+        # Loop through the epochs
+        for i in range(num_epochs):
+            # Find current cost
+            current_outputs = np.array([self.sim(inputs[n]) for n in range(np.size(inputs, 0))])
+            current_cost = cost(current_outputs, outputs)
+            print "Cost for epoch %d: %f" % (i,current_cost)
+            # Find the partial derivative of Cost w.r.t. each parameter
+            for j in self.layers:
+                for k in j.nodes:
+                    # Weights
+                    for m in range(len(k.weights)):
+                        # Change weight by self.h_param
+                        k.weights[m] += self.h_param
+                        # Simulate network
+                        perturbed_outputs = np.array([self.sim(inputs[n]) for n in range(np.size(inputs, 0))])
+                        # Find cost
+                        perturbed_cost = cost(perturbed_outputs, outputs)
+                        # Calculate partial cost
+                        partial_cost = (perturbed_cost-current_cost)/self.h_param
+                        # Return value of k.weight[k]
+                        k.weights[m] -= self.h_param
+                        # Calculate update
+                        k.weights_to_update[m] = k.weights[m] - self.learning_rate*partial_cost
+                        
+                    # Bias
+                    # Change bias by self.h_param
+                    k.bias += self.h_param
+                    # Simulate network
+                    perturbed_outputs = np.array([self.sim(inputs[n]) for n in range(np.size(inputs, 0))])
+                    # Find cost
+                    perturbed_cost = cost(perturbed_outputs, outputs)
+                    # Calculate partial cost
+                    partial_cost = (perturbed_cost-current_cost)/self.h_param
+                    # Return value of k.bias[k]
+                    k.bias -= self.h_param
+                    # Calculate update
+                    k.bias_to_update = k.bias - self.learning_rate*partial_cost
+                    
+            # Update the parameters  
+            for j in self.layers:
+                for k in j.nodes:
+                    k.update_parameters()
 
 class Layer:
     def __init__(self, num_nodes, num_inputs):
@@ -57,7 +111,9 @@ class Node:
         
         self.num_inputs = num_inputs
         self.weights = np.random.randn(num_inputs)
-        self.bias = np.random.randn(1) 
+        self.bias = np.random.randn(1)
+        self.weights_to_update = np.zeros(num_inputs)
+        self.bias_to_update = 0 
         
     def sim(self, inputs):
         """Simulates the node
@@ -65,6 +121,14 @@ class Node:
         z = np.dot(self.weights, inputs)+self.bias
         output = sigmoid(z)
         return output
+    
+    def update_parameters(self):
+        """Updates the weights and bias"""
+        # Reset update value as well (TODO: figure out why this is necessary - they should all be replaced anyway)
+        self.weights = self.weights_to_update
+        self.weights_to_update = np.zeros(self.num_inputs)
+        self.bias = self.bias_to_update
+        self.bias_to_update = 0
     
 def sigmoid(z):
     output = 1.0/(1.0+np.exp(-z))
@@ -81,9 +145,22 @@ def cost(simulated_outputs, actual_outputs):
 
 
 # Code to test the cost function
-print cost(np.array([[3, 8, 9, 12]]).T, np.array([[4, 9, 7, 20]]).T)
+#print cost(np.array([[3, 8, 9, 12]]).T, np.array([[4, 9, 7, 20]]).T)
 
 
 # Code to test the network creation
-net = Network([3, 4],2)
-print net.sim([1, 2])
+# Fairly simple network
+net = Network([5,2],4)
+training_input = np.array([[1, 1, 4, 2], [1, 2, 6, 8], [3, 6, 2, 4]])
+training_output = np.array([[1, 0], [0, 1], [0.5, 0.8]])
+
+# Simple 1-node network
+"""
+net = Network([1],1)
+training_input = np.array([1])
+training_output = np.array([0.6])
+"""
+
+
+net.train(training_input, training_output, 1000)
+print np.array([net.sim(training_input[n]) for n in range(np.size(training_input, 0))]) 
