@@ -124,11 +124,8 @@ class Node:
     
     def update_parameters(self):
         """Updates the weights and bias"""
-        # Reset update value as well (TODO: figure out why this is necessary - they should all be replaced anyway)
-        self.weights = self.weights_to_update
-        self.weights_to_update = np.zeros(self.num_inputs)
-        self.bias = self.bias_to_update
-        self.bias_to_update = 0
+        self.weights = np.array(self.weights_to_update) # np.array is to break the alias
+        self.bias = np.array(self.bias_to_update) # np.array is to break the alias
     
 def sigmoid(z):
     output = 1.0/(1.0+np.exp(-z))
@@ -149,17 +146,18 @@ def cost(simulated_outputs, actual_outputs):
 
 
 # Code to test the network creation
-# Fairly simple network
+# Fairly simple networ
+"""
 net = Network([5,2],4)
 training_input = np.array([[1, 1, 4, 2], [1, 2, 6, 8], [3, 6, 2, 4]])
 training_output = np.array([[1, 0], [0, 1], [0.5, 0.8]])
-
-# Simple 1-node network
 """
+# Simple 1-node network
+
 net = Network([1],1)
 training_input = np.array([1])
 training_output = np.array([0.6])
-"""
+
 
 
 net.train(training_input, training_output, 1000)
