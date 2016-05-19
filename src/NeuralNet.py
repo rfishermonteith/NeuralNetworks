@@ -126,29 +126,6 @@ class Layer:
         self.w = np.matrix(self.w_to_update)
         self.b = np.matrix(self.b_to_update)      
 
-class Node:
-    def __init__(self, num_inputs):
-        """Initialise the Node object
-        num_inputs is the number of inputs to the node"""
-        
-        self.num_inputs = num_inputs
-        self.weights = np.random.randn(num_inputs)
-        self.bias = np.random.randn(1)
-        self.weights_to_update = np.zeros(num_inputs)
-        self.bias_to_update = 0 
-        
-    def sim(self, inputs):
-        """Simulates the node
-        inputs is a list of inputs to the node"""
-        z = np.dot(self.weights, inputs)+self.bias
-        output = sigmoid(z)
-        return output
-    
-    def update_parameters(self):
-        """Updates the weights and bias"""
-        self.weights = np.array(self.weights_to_update) # np.array is to break the alias
-        self.bias = np.array(self.bias_to_update) # np.array is to break the alias
-    
 def sigmoid(z):
     #output = sp.logistic.cdf(z)
     output = 1.0/(1.0+np.exp(-z))
@@ -183,5 +160,5 @@ training_output = np.array([0.6])
 '''
 
 
-net.train(training_input, training_output, 10000)
+net.train(training_input, training_output, 1000)
 print np.concatenate([net.sim(training_input[:,n]) for n in range(np.size(training_input, 1))], 1) 
