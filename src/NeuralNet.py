@@ -23,13 +23,16 @@ class Network:
             self.layers[i] = new_layer
          
         # Set step size for numerical integration   
-        self.h_param = 0.000001
+        self.h_param = 0.0000001
         # Set learning rate value
-        self.learning_rate = 0.4
+        self.learning_rate = 3.0
             
     def sim(self, inputs):
         """Simulates the feedforward network
-        inputs is a list of inputs which corresponds to the number of inputs in the input layer"""
+        inputs is a 2darray of inputs which corresponds to the number of inputs in the input layer
+        Columns in the inputs are samples
+        Rows are elements
+        Ie a single input should be a single column"""
         
         tempOutputs = inputs
         for i in self.layers:
@@ -39,16 +42,17 @@ class Network:
     
     def train(self, inputs, outputs, num_epochs):
         """Trains the network
-        inputs is a 2darray of inputs, rows are samples, columns are elements
-        outputs is a 2darray of corresponding network outputs, rows are samples, columns are elements
+        inputs is a 2darray of inputs, rows are elements, columns are samples
+        outputs is a 2darray of corresponding network outputs, rows are elements, columns are samples
         num_epochs is the number of epochs to run
         """
                 
         # Loop through the epochs
         for i in range(num_epochs):
             # Find current cost
-            current_outputs = [self.sim(inputs[:,n]) for n in range(np.size(inputs, 1))]
-            current_outputs = np.concatenate(current_outputs,1)
+            #current_outputs = [self.sim(inputs[:,n]) for n in range(np.shape(inputs)[1])]
+            #current_outputs = np.concatenate(current_outputs,1)
+            current_outputs = self.sim(inputs)
             current_cost = cost(current_outputs, outputs)
             print "Cost for epoch %d: %f" % (i,current_cost)
             # Find the partial derivative of Cost w.r.t. each parameter
@@ -59,8 +63,9 @@ class Network:
                         # Change weight by self.h_param
                         j.w[k,m] += self.h_param
                         # Simulate network
-                        perturbed_outputs = [self.sim(inputs[:,n]) for n in range(np.size(inputs, 1))]
-                        perturbed_outputs = np.concatenate(perturbed_outputs, 1)
+                        #perturbed_outputs = [self.sim(inputs[:,n]) for n in range(np.size(inputs, 1))]
+                        #perturbed_outputs = np.concatenate(perturbed_outputs, 1)
+                        perturbed_outputs = self.sim(inputs)
                         # Find cost
                         perturbed_cost = cost(perturbed_outputs, outputs)
                         # Calculate partial cost
@@ -74,8 +79,9 @@ class Network:
                     # Change bias by self.h_param
                     j.b[k] += self.h_param
                     # Simulate network
-                    perturbed_outputs = [self.sim(inputs[:,n]) for n in range(np.size(inputs, 1))]
-                    perturbed_outputs = np.concatenate(perturbed_outputs, 1)
+                    #perturbed_outputs = [self.sim(inputs[:,n]) for n in range(np.size(inputs, 1))]
+                    #perturbed_outputs = np.concatenate(perturbed_outputs, 1)
+                    perturbed_outputs = self.sim(inputs)
                     # Find cost
                     perturbed_cost = cost(perturbed_outputs, outputs)
                     # Calculate partial cost
@@ -92,16 +98,30 @@ class Network:
                 for k in j.nodes:
                     k.update_parameters()
                 '''
+    def __str__(self):
+        """Print the network"""
+        
+        # Loop through the layers
+        a = ""
+        for i in range(len(self.layers)):
+            a+=str(self.layers[i])+"\n"
+        #print(a)
+        return a
 
 class Layer:
     def __init__(self, num_nodes, num_inputs):
         """Initialises the Layer object
         num_nodes is the number of Nodes to be in the layer
-        num_inputs is the number of outputs from the previous layer"""
+        num_inputs is the number of outputs from the previous layer
         
-        self.w = np.matrix(np.random.rand(num_nodes, num_inputs))
+        The weights w will be of size [num_nodes x num_inputs]
+        The biases b will be of size [num_nodes x 1]"""
+        a = 10
+        self.num_nodes = num_nodes
+        self.num_inputs = num_inputs
+        self.w = np.matrix(a*(np.random.normal(0,1,size = [num_nodes, num_inputs])))
         self.w_to_update = np.zeros_like(self.w)
-        self.b = np.matrix.transpose(np.matrix(np.random.rand(num_nodes)))
+        self.b = np.matrix.transpose(a*(np.matrix(np.random.normal(0,1,num_nodes))))
         self.b_to_update = np.zeros_like(self.b)
         '''
         self.nodes = [0 for i in range(num_nodes)]
@@ -115,7 +135,8 @@ class Layer:
         
         z = self.w*inputs+self.b
         
-        outputs = sigmoid(z)
+        outputs = np.tanh(z)
+        # outputs = z
         '''
         for i in self.nodes:
             outputs.append(i.sim(inputs))
@@ -124,7 +145,12 @@ class Layer:
     def update_parameters(self):
         """Updates the weights and biases of the Layer"""
         self.w = np.matrix(self.w_to_update)
-        self.b = np.matrix(self.b_to_update)      
+        self.b = np.matrix(self.b_to_update)   
+    
+    def __str__(self):
+        """Returns the details of this layer"""
+        
+        return "Layer has %s inputs and %s nodes, b: %s, w: %s" % (self.num_inputs, self.num_nodes, str(self.b), str(self.w))
 
 def sigmoid(z):
     #output = sp.logistic.cdf(z)
@@ -136,29 +162,5 @@ def cost(simulated_outputs, actual_outputs):
     if len(simulated_outputs.shape) == 1:
         cost_value = 1.0/(2.0*n) * np.sum(np.subtract(simulated_outputs,actual_outputs)**2)
     else:
-        cost_value = 1.0/(2.0*n) * np.sum(np.linalg.norm(np.subtract(simulated_outputs,actual_outputs), axis=0)**2)
+        cost_value = 1.0/(2.0*n) * np.sum(np.linalg.norm(np.subtract(simulated_outputs,actual_outputs), axis=0))
     return cost_value
-
-
-
-# Code to test the cost function
-#print cost(np.array([[3, 8, 9, 12]]).T, np.array([[4, 9, 7, 20]]).T)
-
-
-# Code to test the network creation
-# Fairly simple network
-
-net = Network([5,2],4)
-training_input = np.matrix([[1, 1, 3], [1, 2, 6], [4, 6, 2], [2, 8, 4]])
-training_output = np.matrix([[1, 0, 0.5], [0, 1, 0.8]])
-
-# Simple 1-node network
-'''
-net = Network([1],1)
-training_input = np.array([1])
-training_output = np.array([0.6])
-'''
-
-
-net.train(training_input, training_output, 1000)
-print np.concatenate([net.sim(training_input[:,n]) for n in range(np.size(training_input, 1))], 1) 
