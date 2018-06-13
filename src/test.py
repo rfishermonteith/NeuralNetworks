@@ -18,3 +18,12 @@ outputs = net.sim(inputs)
     
 
 plt.plot(np.transpose(inputs), np.transpose(outputs))
+
+#%% Find the cost for a sin curve
+np.random.seed(6)
+net = nn.Network([1,20,2])
+
+inputs = np.array([np.arange(-10.0,10.0,0.1)])
+outputs = np.concatenate((np.sin(inputs),np.cos(inputs)))
+
+print(net.cost(inputs, outputs))

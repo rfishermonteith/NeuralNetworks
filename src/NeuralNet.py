@@ -25,6 +25,11 @@ class Network:
             a = k.sim(a)
         return a
     
+    def cost(self, inputs, outputs):
+        a = self.sim(inputs)
+        cost = 1/(2*inputs.shape[1])*np.sum(np.linalg.norm(outputs-a,axis=0),axis=0)
+        return cost
+    
 class Layer:
     def __init__(self, num_nodes, num_inputs):
         """Initialises a Layer object"""
